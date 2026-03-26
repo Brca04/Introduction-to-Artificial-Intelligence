@@ -104,6 +104,8 @@ def astar(s0, goals, succ, h): # Algoritam A*
             if nxt in closed: # if ∃m0 ∈ closed ∪ open such that state(m0) = state(m) then
                 if cost + c < closed[nxt]: # if g(m0) < g(m) then continue
                     del closed[nxt] # else remove(m0, closed ∪ open)
+                else:
+                    continue
             cnt += 1
             heapq.heappush(heap, (cost + c + h[nxt], nxt, cnt, path + [nxt], cost + c)) # insertSortedBy(f, m, open)
 
