@@ -1,9 +1,12 @@
+# Uvod u umjetnu inteligenciju – Laboratorijska vjezba 1
+# Bruno Cavor, 0036557489
+
 import argparse
 from collections import deque
 import heapq
 
 
-def load_state_space(path):
+def load_state_space(path): # Ucitavanje prostora stanja
     lines = []
     with open(path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -29,7 +32,7 @@ def load_state_space(path):
     return s0, goals, succ
 
 
-def load_heuristic(path):
+def load_heuristic(path): # Ucitavanje vrijednosti heuristike
     h = {}
     with open(path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -40,93 +43,88 @@ def load_heuristic(path):
     return h
 
 
-def bfs(s0, goals, succ):
-    waiting = deque([(s0, [s0], 0.0)])  # (state, path, cost)
+def bfs(s0, goals, succ): # Pretrazivanje u sirinu (BFS)
+    waiting = deque([(s0, [s0], 0.0)]) # open ← [ initial(s0) ]
     closed = set()
 
-    while waiting:
-        state, path, cost = waiting.popleft()
+    while waiting: # while open ̸= [ ] do    
+        state, path, cost = waiting.popleft() # n ← removeHead(open)
         
-        if state in closed:
+        if state in closed: # Sprecavanje ponovnog posjecivanja vec posjecenih stanja
             continue
         closed.add(state)
 
-        if state in goals:
+        if state in goals: # if goal(state(n)) then return n
             return True, len(closed), path, cost
         
-        for nxt, c in sorted(succ.get(state, []), key=lambda x: x[0]):
+        for nxt, c in sorted(succ.get(state, []), key=lambda x: x[0]): # for m ∈ expand(n,succ) do
             if nxt not in closed:
-                waiting.append((nxt, path + [nxt], cost + c))
+                waiting.append((nxt, path + [nxt], cost + c)) # insertBack(m, open)
 
-    return False, len(closed), [], 0.0
+    return False, len(closed), [], 0.0 # return fail
 
 
-def ucs(s0, goals, succ):
+def ucs(s0, goals, succ): # Pretrazivanje s jednolikom cijenom (UCS)
     cnt = 0
-    heap = [(0.0, cnt, s0, [s0])]  # (state, path, cnt, cost)
+    heap = [(0.0, cnt, s0, [s0])] # open ← [ initial(s0) ]
     closed = set()
 
-    while heap:
-        cost, cnt, state, path = heap[0]
-        heapq.heappop(heap)
+    while heap: # while open ̸= [ ] do
+        cost, cnt, state, path = heapq.heappop(heap) # n ← removeHead(open)
 
-        if state in closed:
+        if state in closed: # Sprecavanje ponovnog posjecivanja vec posjecenih stanja
             continue
         closed.add(state)
 
-        if state in goals:
+        if state in goals: # if goal(state(n)) then return n
             return True, len(closed), path, cost
         
-        for nxt, c in sorted(succ.get(state, []), key=lambda x: x[0]):
+        for nxt, c in sorted(succ.get(state, []), key=lambda x: x[0]): # for m ∈ expand(n,succ) do
             if nxt not in closed:
                 cnt += 1
-                heapq.heappush(heap, (cost + c, cnt, nxt, path + [nxt]))
+                heapq.heappush(heap, (cost + c, cnt, nxt, path + [nxt])) # insertBack(m, open)
 
-    return False, len(closed), [], 0.0
+    return False, len(closed), [], 0.0 # return fail
 
 
-def astar(s0, goals, succ, h):
-    waiting = [(s0, [s0], 0.0, h[s0])]  # open ← [ initial(s0) ]
-    closed = {}  # closed ← ∅ 
+def astar(s0, goals, succ, h): # Algoritam A*
+    cnt = 0
+    heap = [(h[s0], s0, cnt, [s0], 0.0)]  # open ← [ initial(s0) ]
+    closed = {}  # closed ← ∅
 
-    while waiting: # while open != [ ] do
-        state, path, cost, f_value = waiting[0]  # n ← removeHead(open)
-        waiting = waiting[1:]
+    while heap: # while open != [ ] do
+        f_value, state, _, path, cost = heapq.heappop(heap)  # n ← removeHead(open)
 
         if state in goals: # if goal(state(n)) then return n
             return True, len(closed), path, cost
 
         closed[state] = cost # closed ← closed ∪ { n }
 
-        for nxt, c in sorted(succ.get(state, []), key=lambda x: x[0]):
-            if nxt in closed:
+        for nxt, c in sorted(succ.get(state, []), key=lambda x: x[0]): # for m ∈ expand(n,succ) do
+            if nxt in closed: # if ∃m0 ∈ closed ∪ open such that state(m0) = state(m) then
                 if cost + c < closed[nxt]: # if g(m0) < g(m) then continue
-                    del closed[nxt] # remove(m0, closed ∪ open)
+                    del closed[nxt] # else remove(m0, closed ∪ open)
+            cnt += 1
+            heapq.heappush(heap, (cost + c + h[nxt], nxt, cnt, path + [nxt], cost + c)) # insertSortedBy(f, m, open)
 
-            # insertSortedBy(f, m, open)
-            waiting.append((nxt, path + [nxt], cost + c, cost + c + h[nxt])) # open ← open ∪ { m }
-            waiting.sort(key=lambda x: (x[3], x[0]))  # sort by f_value, then by state name
-
-    return False, len(closed), [], 0.0
-    pass
+    return False, len(closed), [], 0.0 # return fail
 
 
-def check_optimistic(goals, succ, h, h_path):
+def check_optimistic(goals, succ, h, h_path): # Provjera optimisticnosti heuristike
     print("# HEURISTIC-OPTIMISTIC {}".format(h_path))
 
-    # Build reverse graph
-    rev = {}
+    rev = {} # Izgradnja obrnutog grafa za racunanje h* vrijednosti
     for state, neighbors in succ.items():
         for nxt, c in neighbors:
             rev.setdefault(nxt, []).append((state, c))
 
-    # Multi-source Dijkstra from all goals on reverse graph
+    
     hstar_value = {}
     heap = []
     for g in goals:
         heapq.heappush(heap, (0.0, g))
 
-    while heap:
+    while heap: # Dijkstrin algoritam za racunanje h* vrijednosti
         cost, state = heapq.heappop(heap)
         if state in hstar_value:
             continue
@@ -140,6 +138,7 @@ def check_optimistic(goals, succ, h, h_path):
         hval = h[state]
         hstar = hstar_value.get(state, float('inf'))
 
+        # Provjeravamo optimisticnost heuristike, tj. vrijedi li h(n) <= h*(n)
         if hval <= hstar:
             print("[CONDITION]: [OK] h({}) <= h*: {:.1f} <= {:.1f}".format(state, hval, hstar))
         else:
@@ -152,7 +151,7 @@ def check_optimistic(goals, succ, h, h_path):
         print("[CONCLUSION]: Heuristic is not optimistic.")
 
 
-def check_consistent(succ, h, h_path):
+def check_consistent(succ, h, h_path): # Provjera konzistentnosti heuristike
     print("# HEURISTIC-CONSISTENT {}".format(h_path))
     consistent = True
 
@@ -161,6 +160,7 @@ def check_consistent(succ, h, h_path):
             hs = h.get(state, 0.0)
             ht = h.get(nxt, 0.0)
 
+            # Provjeravamo monotonost heuristike, tj. vrijedi li h(n) <= h(m) + c
             if hs <= ht + c:
                 print("[CONDITION]: [OK] h({}) <= h({}) + c: {:.1f} <= {:.1f} + {:.1f}".format(
                     state, nxt, hs, ht, c))
@@ -175,7 +175,7 @@ def check_consistent(succ, h, h_path):
         print("[CONCLUSION]: Heuristic is not consistent.")
 
 
-def print_result(alg, found, visited, path, cost, h_path=None):
+def print_result(alg, found, visited, path, cost, h_path=None): # Ispis rezultata
     if h_path:
         print("# {} {}".format(alg, h_path))
     else:
@@ -191,7 +191,7 @@ def print_result(alg, found, visited, path, cost, h_path=None):
         print("[FOUND_SOLUTION]: no")
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # Glavna funkcija
     parser = argparse.ArgumentParser()
     parser.add_argument('--alg', type=str)
     parser.add_argument('--ss', type=str)
