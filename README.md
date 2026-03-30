@@ -1,5 +1,5 @@
 # Introduction-to-Artificial-Intelligence
-Introduction-to-Artificial-Intelligence at FER.  
+Introduction to Artificial Intelligence at FER.  
 https://www.fer.unizg.hr/en/course/itai
 
 ## About
