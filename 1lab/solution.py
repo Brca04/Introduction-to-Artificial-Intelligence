@@ -1,5 +1,5 @@
 # Uvod u umjetnu inteligenciju – Laboratorijska vjezba 1
-# Bruno Cavor, 0036557489
+# Bruno Cavor
 
 import argparse
 from collections import deque
